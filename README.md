@@ -2,7 +2,7 @@
 
 a simple bin with optional abuse and auth support.
 
-- use branch **feature/file-sharing** for **file sharing** and **admin panel**.
+- use branch (**feature/file-sharing**)[https://github.com/timuzkas/tbin/tree/feature/file-sharing] for **file sharing** and **admin panel**.
 ---
 
 built using sveltekit and better-sqlite.
