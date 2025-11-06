@@ -5,7 +5,7 @@
 	export let data;
 	$: paste = data?.paste;
 	$: language = paste?.language || 'plaintext';
-	$: renderedContent = dedent(paste?.content?.trim() || '');
+	$: renderedContent = dedent(paste?.content || '').trim();
 
 	function dedent(code: string): string {
 		const lines = code.split('\n');
@@ -24,27 +24,35 @@
 	onMount(() => {
 		if (paste) hljs.highlightAll();
 	});
-	function copyURL() {
-		navigator.clipboard.writeText(window.location.href);
+	function copyContent() {
+		navigator.clipboard.writeText(renderedContent);
+	}
+	function copyRawURL() {
+		navigator.clipboard.writeText(`${window.location.origin}/api/paste/${paste.id}`);
 	}
 </script>
 
 <svelte:head>
 	<title>{paste?.id || 'paste'}</title>
 </svelte:head>
-<main class="mx-auto max-w-2xl space-y-6 p-6">
+<main class="mx-auto max-w-full space-y-6 p-6 md:max-w-[70%]">
 	{#if paste}
 		<div class="flex items-center justify-between">
 			<a href="/" class="text-md text-3xl text-accent hover:cursor-pointer hover:underline"
 				>> {paste.id}</a
 			>
-			<button on:click={copyURL} class="px-4 py-2 hover:text-accent hover:underline"
-				>copy URL</button
-			>
+			<div>
+				<button on:click={copyContent} class="px-4 py-2 hover:text-accent hover:underline"
+					>copy content</button
+				>
+				<button on:click={copyRawURL} class="px-4 py-2 hover:text-accent hover:underline"
+					>copy raw URL</button
+				>
+			</div>
 		</div>
 		<pre class="mt-4 overflow-x-auto rounded-lg border border-text bg-transparent p-4">
-      <code class="language-{language}">{renderedContent}</code>
-    </pre>
+<code class="language-{language} whitespace-pre">{renderedContent}</code>
+</pre>
 	{:else}
 		<p class="text-text">
 			Paste not found.
