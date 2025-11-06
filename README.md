@@ -24,7 +24,8 @@ abuse blocking and purifying (isomorphic-dompurify).
   - Anonymous files expire after 24 hours, logged-in user files expire after 1 week.
   - Files are stored in the `uploads/` directory (which is gitignored).
 - **Admin Panel (Local-only):**
-  - A password-protected interface (`/admin`) to manage uploaded files, including purging all files or files by a specific user.
+  - Access to the admin page itself is controlled by a `password` query parameter in the URL (e.g., `/admin?password=your_admin_password`). This password is hashed server-side and compared against the `ADMIN_PASSWORD` environment variable.
+  - A password-protected interface (`/admin`) accessible only from localhost, allowing management of uploaded files and pastes. This includes purging all files/pastes or those associated with a specific user.
 
 ---
 ## > Configuration
