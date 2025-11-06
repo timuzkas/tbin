@@ -36,4 +36,35 @@ db.prepare(`
   )
 `).run();
 
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS files (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL,
+    size INTEGER NOT NULL,
+    user_id TEXT,
+    created_at INTEGER DEFAULT (strftime('%s', 'now')),
+    expires_at INTEGER
+  )
+`).run();
+
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS file_collections (
+    id TEXT PRIMARY KEY,
+    user_id TEXT,
+    created_at INTEGER DEFAULT (strftime('%s', 'now')),
+    expires_at INTEGER
+  )
+`).run();
+
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS file_collection_items (
+    collection_id TEXT NOT NULL,
+    file_id TEXT NOT NULL,
+    PRIMARY KEY (collection_id, file_id),
+    FOREIGN KEY (collection_id) REFERENCES file_collections(id) ON DELETE CASCADE,
+    FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE
+  )
+`).run();
+
 export default db;

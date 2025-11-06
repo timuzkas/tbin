@@ -7,14 +7,16 @@ export async function load({ getClientAddress }) {
 
   const noLogin = env.LOGIN_ENABLED === 'false';
   const showCredits = env.SHOW_CREDITS === 'TRUE';
+  const fileSharingEnabled = env.FILE_SHARING_ENABLED === 'TRUE';
 
   if (ban) {
     return {
       banned: true,
       noLogin,
-      showCredits
+      showCredits,
+      fileSharingEnabled
     };
   }
 
-  return { banned: false, noLogin, showCredits };
+  return { banned: false, noLogin, showCredits, fileSharingEnabled };
 }

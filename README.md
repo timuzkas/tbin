@@ -19,6 +19,12 @@ abuse blocking and purifying (isomorphic-dompurify).
   - Authenticated users' pastes do not expire.
   - Anonymous pastes expire based on size: < 0.5 MB after 1 month, >= 0.5 MB after 1 week.
 - **Admin Purge and Ban:** An API endpoint (`/api/admin/purge-and-ban`) allows for purging all pastes of a user and permanently banning their last known IP address. This endpoint is restricted to local access only.
+- **File Sharing (Experimental):**
+  - Upload and share files, with optional gallery view for images.
+  - Anonymous files expire after 24 hours, logged-in user files expire after 1 week.
+  - Files are stored in the `uploads/` directory (which is gitignored).
+- **Admin Panel (Local-only):**
+  - A password-protected interface (`/admin`) to manage uploaded files, including purging all files or files by a specific user.
 
 ---
 ## > Configuration
@@ -31,6 +37,9 @@ abuse blocking and purifying (isomorphic-dompurify).
 - `LOGIN_ENABLED`: Set to `false` to hide the login UI on the frontend.
 - `RATE_LIMIT_ENABLED`: Set to `false` to disable all rate limiting and banning.
 - `SHOW_CREDITS`: Set to `TRUE` to display the "made by timuzkas" credit on the frontend.
+- `FILE_SHARING_ENABLED`: Set to `TRUE` to enable the experimental file sharing feature.
+- `ADMIN_PASSWORD`: Set this to the **SHA-256 hash** of your admin password combined with the `ADMIN_PASSWORD_SALT`.
+- `ADMIN_PASSWORD_SALT`: A **random, secret string** used to salt the admin password hash. This prevents rainbow table attacks. You can generate a random string using `openssl rand -hex 32`.
 
 ---
 ## > Development server
@@ -44,6 +53,16 @@ bun run dev
 
 # To disable login and rate limiting during development:
 LOGIN_ENABLED=false RATE_LIMIT_ENABLED=false bun run dev
+
+# To enable file sharing during development:
+FILE_SHARING_ENABLED=TRUE bun run dev
+
+# To access the admin panel during development:
+# 1. Generate a random salt: openssl rand -hex 32
+# 2. Choose your admin password (e.g., 'mysecretpassword')
+# 3. Calculate the hash: echo -n "mysecretpassword<your_salt>" | sha256sum
+# 4. Set the environment variables:
+ADMIN_PASSWORD_SALT=your_salt ADMIN_PASSWORD=your_calculated_hash bun run dev
 
 # or start the server and open the app in a new browser tab
 bun run dev --open

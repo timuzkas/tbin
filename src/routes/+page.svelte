@@ -151,8 +151,17 @@
 		{/if}
 	</div>
 
+	{#if data.fileSharingEnabled}
+		<div class="flex items-center gap-x-2">
+			<p class="text-neutral-400">or</p>
+			<a href="/files/upload" class="text-accent hover:text-white hover:underline">Upload Files</a>
+		</div>
+	{/if}
+
 	{#if !data.noLogin}
 		<div class="auth-section">
+			<hr class="my-4 border-t border-neutral-900" />
+
 			{#if token}
 				<p>
 					Welcome, {username}!
