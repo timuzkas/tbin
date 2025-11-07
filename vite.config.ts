@@ -5,6 +5,6 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
 	server: {
-		allowedHosts: ['dev.timuzkas.xyz']
+		allowedHosts: ['dev.timuzkas.xyz', 'bin.timuzkas.xyz']
 	}
 });
