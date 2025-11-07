@@ -7,9 +7,9 @@ import { log } from '$lib/log';
 const MAX_OTP_ATTEMPTS = 5;
 const LOCKOUT_DURATION = 900;
 
-export async function POST({ request, cookies, getClientAddress }) {
+export async function POST({ request, cookies, event }) {
 	const { username, otp } = await request.json();
-	const ip = getClientAddress();
+	const ip = event.locals.ip;
 
 	if (!username || !otp) {
 		return new Response('Username and OTP are required.', { status: 400 });

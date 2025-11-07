@@ -4,8 +4,8 @@ import { env } from '$env/dynamic/private';
 import { log } from '$lib/log';
 import { hashPassword } from '$lib/utils';
 
-export async function POST({ request, getClientAddress }) {
-	const clientAddress = getClientAddress();
+export async function POST({ request, event }) {
+	const clientAddress = event.locals.ip;
 
 	if (clientAddress !== '127.0.0.1' && clientAddress !== '::1') {
 		log(`Unauthorized attempt to access purge-pastes endpoint from ${clientAddress}`);

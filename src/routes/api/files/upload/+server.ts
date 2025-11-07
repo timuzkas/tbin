@@ -21,10 +21,10 @@ const ANONYMOUS_MAX_COLLECTION_SIZE_MB = 20;
 const AUTHENTICATED_MAX_COLLECTION_FILES = 50;
 const AUTHENTICATED_MAX_COLLECTION_SIZE_MB = 100;
 
-export async function POST({ request, cookies, getClientAddress }) {
+export async function POST({ request, cookies, event }) {
 	if (env.FILE_SHARING_ENABLED !== 'TRUE') throw error(404, 'Not Found');
 
-	const clientAddress = getClientAddress();
+	const clientAddress = event.locals.ip;
 	const formData = await request.formData();
 	const file = formData.get('file') as File | null;
 	let collection_id: string | null = formData.get('collection_id') as string | null;

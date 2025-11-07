@@ -12,12 +12,12 @@ const OFFENSE_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const MAX_OFFENSES = 50;
 const noRateLimit = env.NO_RATE_LIMIT === 'true';
 
-export async function POST({ request, cookies, getClientAddress }) {
+export async function POST({ request, cookies, event }) {
 	if (env.FILE_SHARING_ENABLED !== 'TRUE') {
 		throw error(404, 'Not Found');
 	}
 
-	const clientAddress = getClientAddress();
+	const clientAddress = event.locals.ip;
 	const user = validateAuth(cookies);
 	const userId = user?.id || null;
 

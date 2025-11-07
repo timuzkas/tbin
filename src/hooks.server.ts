@@ -1,5 +1,15 @@
 import { log } from './lib/log';
 
+export const handle = async ({ event, resolve }) => {
+  const forwardedIp = event.request.headers.get('x-forwarded-for');
+  const realIp = event.request.headers.get('x-real-ip');
+
+  event.locals.ip = forwardedIp || realIp || event.getClientAddress();
+
+  const response = await resolve(event);
+  return response;
+};
+
 const purgeExpiredPastes = async () => {
   try {
     log('Running cronjob to delete expired pastes.');

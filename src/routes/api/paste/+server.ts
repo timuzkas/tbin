@@ -22,7 +22,7 @@ const noRateLimit = env.NO_RATE_LIMIT === 'true';
 
 export async function POST(event) {
 
-	const clientAddress = event.getClientAddress();
+	const clientAddress = event.locals.ip;
 
 	const user = validateAuth(event.cookies);
 
