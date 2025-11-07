@@ -26,6 +26,7 @@ export async function GET({ params }) {
       headers: {
         'Content-Type': file.type,
         'Content-Length': file.size.toString(),
+        'Content-Disposition': `attachment; filename="${file.name}"`, // Add this line
       },
     });
   } catch (e) {
