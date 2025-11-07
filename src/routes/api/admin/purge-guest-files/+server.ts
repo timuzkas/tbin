@@ -1,13 +1,13 @@
 import { json } from '@sveltejs/kit';
 import db from '$lib/db';
-import { ADMIN_PASSWORD } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import fs from 'fs/promises';
 import path from 'path';
 
 export async function POST({ request }) {
     const { password } = await request.json();
 
-    if (password !== ADMIN_PASSWORD) {
+    if (password !== env.ADMIN_PASSWORD) {
         return json({ message: 'Unauthorized' }, { status: 401 });
     }
 
