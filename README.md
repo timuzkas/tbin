@@ -25,7 +25,15 @@ abuse blocking and purifying (isomorphic-dompurify).
   - Files are stored in the `uploads/` directory (which is gitignored).
 - **Admin Panel (Local-only):**
   - Access to the admin page itself is controlled by a `password` query parameter in the URL (e.g., `/admin?password=your_admin_password`). This password is hashed server-side and compared against the `ADMIN_PASSWORD` environment variable.
-  - A password-protected interface (`/admin`) accessible only from localhost, allowing management of uploaded files and pastes. This includes purging all files/pastes or those associated with a specific user.
+  - A password-protected interface (`/admin`) accessible only from localhost, offering comprehensive management capabilities.
+  - **Basic Features:**
+    - Purge all files or all pastes.
+    - View user data (pastes, file collections).
+  - **Advanced Features (enabled by `ADVANCED_ADMIN=true`):**
+    - **User Management:** Ban/unban users, purge specific user's files/pastes, delete individual pastes, file collections, and files.
+    - **Notification Management:** Create, view, and delete global or user-specific notifications.
+    - **Rate Limit Management:** Configure, view, and delete rate limits for various actions (e.g., paste creation, file upload, login attempts) for all users, guests, or authorized users.
+    - **Guest Feature Toggles:** Enable/disable guest file uploads and guest paste creations.
 
 ---
 ## > Configuration
@@ -42,6 +50,7 @@ abuse blocking and purifying (isomorphic-dompurify).
 - `ALLOW_ANONYMOUS_UPLOADS`: set to `true` to enable guest file uploads.
 - `ADMIN_PASSWORD`: Set this to the **SHA-256 hash** of your admin password combined with the `ADMIN_PASSWORD_SALT`.
 - `ADMIN_PASSWORD_SALT`: A **random, secret string** used to salt the admin password hash. This prevents rainbow table attacks. You can generate a random string using `openssl rand -hex 32`.
+- `ADVANCED_ADMIN`: Set to `true` to enable advanced features in the admin panel, such as user banning, notification management, rate limit configuration, and guest feature toggles.
 
 ---
 ## > Development server

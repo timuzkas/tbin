@@ -24,6 +24,12 @@ export const load: PageServerLoad = async (event) => {
 		};
 	}
 
+	const notifications = db
+		.prepare(
+			`SELECT message, user_id FROM notifications WHERE (user_id IS NULL OR user_id = '' OR user_id = ?) AND (expires_at IS NULL OR expires_at > strftime('%s', 'now'))`
+		)
+		.all(user?.id || null);
+
 	return {
 		banned: false,
 		noLogin,
@@ -31,6 +37,7 @@ export const load: PageServerLoad = async (event) => {
 		fileSharingEnabled,
 		isLoggedIn: !!user,
 		username: user?.username || '',
-		userId: user?.id || null
+		userId: user?.id || null,
+		notifications: notifications.map((n) => ({ message: n.message, isUserSpecific: !!n.user_id }))
 	};
 };

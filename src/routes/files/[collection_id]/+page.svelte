@@ -7,11 +7,13 @@
 	let currentFiles = files;
 
 	let fileToUpload: FileList | null = null;
+	let loading = false;
+	let errorMessage = '';
 
 	function handleFileChange(event: Event) {
 		const input = event.target as HTMLInputElement;
 		fileToUpload = input.files;
-		console.log('File selected:', fileToUpload);
+		console.log('Files selected:', fileToUpload);
 	}
 
 	function isImage(file) {
@@ -52,43 +54,49 @@
 	}
 
 	async function uploadFileToCollection() {
+		errorMessage = '';
 		if (!fileToUpload || fileToUpload.length === 0) {
-			alert('Please select a file to upload.');
+			errorMessage = 'Please select files to upload.';
 			return;
 		}
 
-		console.log('File to upload:', fileToUpload[0]);
-		console.log('File name:', fileToUpload[0].name);
-		console.log('File size:', fileToUpload[0].size);
+		loading = true;
+		const newFiles = [];
 
-		const formData = new FormData();
-		formData.append('file', fileToUpload[0], fileToUpload[0].name);
-		formData.append('collection_id', collection.id);
+		for (const file of Array.from(fileToUpload)) {
+			console.log('File to upload:', file);
+			console.log('File name:', file.name);
+			console.log('File size:', file.size);
 
-		for (let [key, value] of formData.entries()) {
-			console.log(`${key}: ${value}`);
+			const formData = new FormData();
+			formData.append('file', file, file.name);
+			formData.append('collection_id', collection.id);
+
+			const response = await fetch('/api/files/upload', {
+				method: 'POST',
+				body: formData
+			});
+
+			if (response.ok) {
+				const result = await response.json();
+				newFiles.push({
+					id: result.id,
+					name: file.name,
+					type: file.type,
+					size: file.size
+				});
+			} else {
+				const errorData = await response.json();
+				errorMessage = `Failed to upload file ${file.name}: ${errorData.message || response.statusText}`;
+				loading = false;
+				return; // Stop on first error
+			}
 		}
 
-		const response = await fetch('/api/files/upload', {
-			method: 'POST',
-			body: formData
-		});
-
-		if (response.ok) {
-			const result = await response.json();
-			alert('File uploaded successfully!');
-			const newFile = {
-				id: result.id,
-				name: fileToUpload[0].name,
-				type: fileToUpload[0].type,
-				size: fileToUpload[0].size
-			};
-			currentFiles = [...currentFiles, newFile];
-			fileToUpload = null;
-		} else {
-			const errorData = await response.json();
-			alert(`Failed to upload file: ${errorData.message || response.statusText}`);
-		}
+		alert('Files uploaded successfully!');
+		currentFiles = [...currentFiles, ...newFiles];
+		fileToUpload = null;
+		loading = false;
 	}
 </script>
 
@@ -98,7 +106,7 @@
 
 <main class="mx-auto max-w-4xl space-y-6 p-6">
 	<div class="flex items-center justify-between">
-		<a href="/" class="text-3xl text-accent hover:cursor-pointer hover:underline">
+		<a on:click={() => (location.href = '/')}class="text-3xl text-accent hover:cursor-pointer hover:underline">
 			> File Collection
 		</a>
 		{#if isOwner && loginEnabled}
@@ -114,16 +122,20 @@
 			<form on:submit|preventDefault={uploadFileToCollection} class="mt-4 space-y-4">
 				<input
 					type="file"
+					multiple
 					on:change={handleFileChange}
 					class=" file:bg-accent/0 file:px-4 file:py-2 file:text-white file:hover:underline"
+					disabled={loading}
 				/>
 
 				<button
 					type="submit"
 					class="bg-accent px-4 py-2 text-black hover:cursor-pointer hover:bg-accent/90 hover:underline"
+					disabled={loading}
 				>
-					Upload File
+					{loading ? 'Uploading...' : 'Upload Files'}
 				</button>
+				{#if errorMessage}<p class="text-red-500">{errorMessage}</p>{/if}
 			</form>
 		</div>
 		<hr class=" border-t border-neutral-900" />

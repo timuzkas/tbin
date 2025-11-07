@@ -7,24 +7,20 @@ import path from 'path';
 import { env } from '$env/dynamic/private';
 import { validateAuth } from '$lib/auth';
 import { log } from '$lib/log';
+import { checkRateLimit } from '$lib/rateLimit';
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const UPLOADS_DIR = 'uploads';
-const RATE_LIMIT_WINDOW_MS = 30000;
-const MAX_REQUESTS_PER_WINDOW = 3;
-const OFFENSE_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000;
-const MAX_OFFENSES = 50;
-const noRateLimit = env.NO_RATE_LIMIT === 'true';
 const ALLOW_ANONYMOUS_UPLOADS = env.ALLOW_ANONYMOUS_UPLOADS === 'true';
 
 const ANONYMOUS_MAX_COLLECTION_FILES = 10;
-const ANONYMOUS_MAX_COLLECTION_SIZE_MB = 20;
-const AUTHENTICATED_MAX_COLLECTION_FILES = 50;
-const AUTHENTICATED_MAX_COLLECTION_SIZE_MB = 100;
+const ANONYMOUS_MAX_COLLECTION_SIZE_MB = 10;
+const AUTHENTICATED_MAX_COLLECTION_FILES = 25;
+const AUTHENTICATED_MAX_COLLECTION_SIZE_MB = 50;
 
 export async function POST(event) {
 	const { request, cookies } = event;
-	if (!(env.FILE_SHARING_ENABLED?.toLowerCase() === 'true' || env.FILE_SHARING_ENABLED === '1')) throw error(404, 'Not Found');
+	if (!(env.FILE_SHARING_ENABLED?.toLowerCase() === 'true' || env.FILE_SHARING_ENABLED === '1'))
+		throw error(404, 'Not Found');
 
 	const clientAddress = event.locals.ip;
 	const formData = await request.formData();
@@ -35,6 +31,19 @@ export async function POST(event) {
 
 	const user = validateAuth(cookies);
 	const userId = user?.id || null;
+
+	// Check guest file uploads setting
+	const guestFileUploadsEnabledSetting = db.prepare(
+		'SELECT value FROM settings WHERE key = \'guest_file_uploads_enabled\''
+	).get();
+	const isGuestFileUploadAllowed = guestFileUploadsEnabledSetting ? guestFileUploadsEnabledSetting.value === 'true' : false;
+
+	// Check for anonymous uploads if not allowed by ENV or setting
+	if (!userId && env.ALLOW_ANONYMOUS_UPLOADS === 'false' && !isGuestFileUploadAllowed) {
+		throw error(403, 'Guest file uploads are disabled.');
+	}
+
+
 
 	// Check for anonymous uploads if not allowed
 	if (!userId && !ALLOW_ANONYMOUS_UPLOADS) {
@@ -90,9 +99,30 @@ export async function POST(event) {
 	await fs.mkdir(UPLOADS_DIR, { recursive: true });
 	await fs.writeFile(filePath, buffer);
 
-	const expires_at = userId
-		? Date.now() + 7 * 24 * 60 * 60 * 1000
-		: Date.now() + 24 * 60 * 60 * 1000;
+	let expires_at: number;
+	const ONE_DAY = 24 * 60 * 60 * 1000;
+	const ONE_WEEK = 7 * ONE_DAY;
+	const THREE_DAYS = 3 * ONE_DAY;
+
+	if (userId) {
+		// Authenticated user
+		if (file.size < 25 * 1024 * 1024) {
+			// < 25MB
+			expires_at = Date.now() + THREE_DAYS;
+		} else {
+			// >= 25MB
+			expires_at = Date.now() + ONE_WEEK;
+		}
+	} else {
+		// Unauthenticated user
+		if (file.size < 5 * 1024 * 1024) {
+			// < 5MB
+			expires_at = Date.now() + ONE_WEEK;
+		} else {
+			// >= 5MB
+			expires_at = Date.now() + ONE_DAY;
+		}
+	}
 
 	db.prepare(
 		'INSERT INTO files (id, name, type, size, user_id, expires_at, collection_id) VALUES (?, ?, ?, ?, ?, ?, ?)'
@@ -110,10 +140,6 @@ export async function POST(event) {
 		log(
 			`File ${id} (${sanitizedFilename}) uploaded by user ${userId || 'anonymous'} from IP ${clientAddress}`
 		);
-	}
-
-	if (!noRateLimit) {
-		db.prepare('INSERT INTO offenses (ip, timestamp) VALUES (?, ?)').run(clientAddress, Date.now());
 	}
 
 	return json({ id });

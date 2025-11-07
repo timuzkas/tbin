@@ -13,7 +13,10 @@
 </svelte:head>
 
 <main class="mx-auto max-w-4xl space-y-6 p-6">
-	<a class="mb-4 block text-3xl text-accent hover:cursor-pointer hover:underline" href="/">
+	<a
+		class="mb-4 block text-3xl text-accent hover:cursor-pointer hover:underline"
+		on:click={() => (location.href = '/')}
+	>
 		> {username}'s Pastes
 	</a>
 

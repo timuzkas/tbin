@@ -67,6 +67,7 @@
 			}
 		}
 		if (results.length === 0) errorMessage = 'No files uploaded.';
+		uploadedCollectionId = collection_id; // Move this line here
 		loading = false;
 	}
 
@@ -80,8 +81,9 @@
 <svelte:head><title>Upload File</title></svelte:head>
 
 <main class="mx-auto max-w-2xl space-y-6 p-6">
-	<a href="/" class="mb-4 block text-3xl text-accent hover:cursor-pointer hover:underline"
-		>> Upload File</a
+	<a
+		on:click={() => (location.href = '/')}
+		class="mb-4 block text-3xl text-accent hover:cursor-pointer hover:underline">> Upload File</a
 	>
 	<div class="space-y-4 rounded-lg border border-text p-4">
 		{#if !isAuthenticated && !allowAnonymousUploads}
@@ -101,9 +103,9 @@
 			<button
 				on:click={uploadFiles}
 				disabled={loading}
-				class="px-4 py-2 hover:cursor-pointer hover:underline"
+				class="border-0 px-4 py-2 hover:cursor-pointer hover:underline"
 			>
-				{loading ? 'Uploading...' : 'Upload Files'}
+				{loading ? 'Uploading...' : '> Upload Files'}
 			</button>
 			{#if errorMessage}<p class="text-red-500">{errorMessage}</p>{/if}
 		{/if}
@@ -114,7 +116,9 @@
 		<div class="flex gap-5">
 			<button
 				on:click={viewCollection}
-				class="bg-accent px-4 py-2 text-black hover:cursor-pointer hover:bg-accent/70">view</button
+				disabled={loading}
+				class="bg-accent px-4 py-2 text-black hover:cursor-pointer hover:bg-accent/70"
+				>{loading ? 'uploading...' : 'view'}</button
 			>
 			<button
 				on:click={copyCollectionURL}

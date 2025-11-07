@@ -123,6 +123,22 @@
 </svelte:head>
 
 <main class="mx-auto max-w-2xl space-y-6 p-6">
+	{#if data.notifications && data.notifications.length > 0}
+		<div class="notification-banner border border-blue-500 p-3 text-white">
+			{#each data.notifications as notification, i (notification.id)}
+				<p class:text-yellow-400={notification.isUserSpecific}>
+					{#if notification.isUserSpecific}
+						(Personal)
+					{/if}
+					{notification.message}
+				</p>
+				{#if i < data.notifications.length - 1}
+					<hr class="my-4 border-t border-neutral-900" />
+				{/if}
+			{/each}
+		</div>
+	{/if}
+
 	{#if data.banned}
 		<div class="banned-message">
 			<p>You have been permanently banned from creating new pastes for abuse.</p>

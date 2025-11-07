@@ -28,10 +28,20 @@ db.prepare(
 db.prepare(
 	`
   CREATE TABLE IF NOT EXISTS bans (
-    ip TEXT PRIMARY KEY
+    ip TEXT PRIMARY KEY,
+    reason TEXT,
+    banned_at INTEGER DEFAULT (strftime('%s', 'now'))
   )
 `
 ).run();
+
+// Check if reason column exists in bans table, and add it if not
+const bansColumns = db.prepare("PRAGMA table_info(bans)").all();
+const hasReasonColumn = bansColumns.some(column => column.name === 'reason');
+
+if (!hasReasonColumn) {
+  db.prepare("ALTER TABLE bans ADD COLUMN reason TEXT").run();
+}
 
 db.prepare(
 	`
@@ -39,14 +49,22 @@ db.prepare(
     id TEXT PRIMARY KEY,
     username TEXT UNIQUE NOT NULL,
     token TEXT UNIQUE NOT NULL,
-    otp_secret TEXT
-  )
-`
-).run();
-
-db.prepare(`
-
-  CREATE TABLE IF NOT EXISTS files (
+    otp_secret TEXT,
+        banned INTEGER DEFAULT 0
+      )
+    `).run();
+    
+    // Check if banned column exists in users table, and add it if not
+    const usersColumns = db.prepare("PRAGMA table_info(users)").all();
+    const hasBannedColumn = usersColumns.some(column => column.name === 'banned');
+    
+    if (!hasBannedColumn) {
+      db.prepare("ALTER TABLE users ADD COLUMN banned INTEGER DEFAULT 0").run();
+    }
+    
+    db.prepare(`
+    
+      CREATE TABLE IF NOT EXISTS files (
 
     id TEXT PRIMARY KEY,
 
@@ -146,5 +164,37 @@ db.prepare(
 
 db.prepare(`DELETE FROM pending_otp WHERE expires_at < strftime('%s', 'now')`).run();
 db.prepare(`DELETE FROM failed_otp_attempts WHERE timestamp < strftime('%s', 'now') - 3600`).run();
+
+db.prepare(
+  `
+  CREATE TABLE IF NOT EXISTS notifications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    message TEXT NOT NULL,
+    user_id TEXT,
+    created_at INTEGER DEFAULT (strftime('%s', 'now')),
+    expires_at INTEGER
+  )
+`
+).run();
+
+db.prepare(
+  `
+  CREATE TABLE IF NOT EXISTS rate_limits (
+    action TEXT PRIMARY KEY,
+    max_offenses INTEGER NOT NULL,
+    time_window_seconds INTEGER NOT NULL,
+    user_id TEXT
+  )
+`
+).run();
+
+db.prepare(
+	`
+  CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  )
+`
+).run();
 
 export default db;

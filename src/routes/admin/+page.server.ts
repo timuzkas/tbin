@@ -22,5 +22,7 @@ export function load({ url }) {
     throw error(401, 'Unauthorized');
   }
 
-  return {};
+  const advancedAdmin = env.ADVANCED_ADMIN === 'true';
+
+  return { password, advancedAdmin };
 }

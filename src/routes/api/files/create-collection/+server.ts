@@ -4,12 +4,8 @@ import db from '$lib/db';
 import { env } from '$env/dynamic/private';
 import { log } from '$lib/log';
 import { validateAuth } from '$lib/auth';
+import { checkRateLimit } from '$lib/rateLimit';
 
-const COLLECTION_CREATION_RATE_LIMIT_WINDOW_MS = 25000; // 1 minute
-const MAX_ANONYMOUS_COLLECTION_CREATION_REQUESTS_PER_WINDOW = 1;
-const MAX_AUTHENTICATED_COLLECTION_CREATION_REQUESTS_PER_WINDOW = 5;
-const OFFENSE_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-const MAX_OFFENSES = 50;
 const noRateLimit = env.NO_RATE_LIMIT === 'true';
 
 export async function POST(event) {
@@ -22,40 +18,7 @@ export async function POST(event) {
 	const user = validateAuth(cookies);
 	const userId = user?.id || null;
 
-	if (!noRateLimit) {
-		const ban = db.prepare('SELECT * FROM bans WHERE ip = ?').get(clientAddress);
-		if (ban) {
-			throw error(403, 'You have been permanently banned for abuse.');
-		}
 
-		let maxRequests = MAX_ANONYMOUS_COLLECTION_CREATION_REQUESTS_PER_WINDOW;
-		if (userId) {
-			maxRequests = MAX_AUTHENTICATED_COLLECTION_CREATION_REQUESTS_PER_WINDOW;
-		}
-
-		const offenses = db
-			.prepare('SELECT * FROM offenses WHERE ip = ? AND timestamp > ?')
-			.all(clientAddress, Date.now() - COLLECTION_CREATION_RATE_LIMIT_WINDOW_MS);
-
-		if (offenses.length >= maxRequests) {
-			db.prepare('INSERT INTO offenses (ip, timestamp) VALUES (?, ?)').run(
-				clientAddress,
-				Date.now()
-			);
-
-			const allOffenses = db
-				.prepare('SELECT * FROM offenses WHERE ip = ? AND timestamp > ?')
-				.all(clientAddress, Date.now() - OFFENSE_EXPIRATION_MS);
-
-			if (allOffenses.length > MAX_OFFENSES) {
-				db.prepare('INSERT OR IGNORE INTO bans (ip) VALUES (?)').run(clientAddress);
-			}
-
-			throw error(429, 'Rate limit exceeded. Please wait before creating another collection.');
-		}
-
-		db.prepare('INSERT INTO offenses (ip, timestamp) VALUES (?, ?)').run(clientAddress, Date.now());
-	}
 
 	  const { file_ids } = await request.json();
 	

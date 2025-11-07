@@ -85,26 +85,32 @@
 </svelte:head>
 <main class="mx-auto max-w-full space-y-6 p-6 md:max-w-[70%]">
 	{#if paste}
-		<div class="flex items-center justify-between">
-			<a href="/" class="text-md text-3xl text-accent hover:cursor-pointer hover:underline"
-				>> {paste.id}</a
+		<div class="sticky top-0 z-10 flex items-center justify-between bg-bg py-4">
+			<a
+				on:click={() => (location.href = '/')}
+				class="text-md text-3xl text-accent hover:cursor-pointer hover:underline">> {paste.id}</a
 			>
 			<div class="flex items-center space-x-2">
 				{#if isOwner && loginEnabled}
 					<button
 						on:click={() => (isEditing = !isEditing)}
-						class="px-4 py-2 hover:text-accent hover:underline"
+						class="px-4 py-2 hover:cursor-pointer hover:text-accent hover:underline"
 					>
 						{isEditing ? 'cancel' : 'edit'}
 					</button>
-					<button on:click={deletePaste} class="px-4 py-2 text-red-500 hover:underline"
-						>delete</button
+					<button
+						on:click={deletePaste}
+						class="px-4 py-2 text-red-500 hover:cursor-pointer hover:underline">delete</button
 					>
 				{/if}
-				<button on:click={copyContent} class="px-4 py-2 hover:text-accent hover:underline"
+				<button
+					on:click={copyContent}
+					class="px-4 py-2 hover:cursor-pointer hover:text-accent hover:underline"
 					>copy content</button
 				>
-				<button on:click={copyRawURL} class="px-4 py-2 hover:text-accent hover:underline"
+				<button
+					on:click={copyRawURL}
+					class="px-4 py-2 hover:cursor-pointer hover:text-accent hover:underline"
 					>copy raw URL</button
 				>
 			</div>
