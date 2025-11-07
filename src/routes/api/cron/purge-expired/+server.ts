@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
-import db from '$lib/db';
 import { log } from '$lib/log';
+import { purgeExpiredPastes } from '$lib/cron';
 
 export async function POST(event) {
   const clientAddress = event.locals.ip;
@@ -10,10 +10,7 @@ export async function POST(event) {
     return new Response('Unauthorized', { status: 401 });
   }
 
-  const now = Date.now();
-  const result = db.prepare('DELETE FROM pastes WHERE expires_at IS NOT NULL AND expires_at < ?').run(now);
+  const changes = purgeExpiredPastes();
 
-  log(`Deleted ${result.changes} expired pastes.`);
-
-  return json({ message: `Deleted ${result.changes} expired pastes.` });
+  return json({ message: `Deleted ${changes} expired pastes.` });
 }
