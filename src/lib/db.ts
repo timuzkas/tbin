@@ -3,7 +3,8 @@ import Database from 'better-sqlite3';
 const dbPath = 'pastes.db';
 const db = new Database(dbPath);
 
-db.prepare(`
+db.prepare(
+	`
   CREATE TABLE IF NOT EXISTS pastes (
     id TEXT PRIMARY KEY,
     content TEXT NOT NULL,
@@ -12,31 +13,39 @@ db.prepare(`
     expires_at INTEGER,
     user_id TEXT
   )
-`).run();
+`
+).run();
 
-db.prepare(`
+db.prepare(
+	`
   CREATE TABLE IF NOT EXISTS offenses (
     ip TEXT NOT NULL,
     timestamp INTEGER NOT NULL
   )
-`).run();
+`
+).run();
 
-db.prepare(`
+db.prepare(
+	`
   CREATE TABLE IF NOT EXISTS bans (
     ip TEXT PRIMARY KEY
   )
-`).run();
+`
+).run();
 
-db.prepare(`
+db.prepare(
+	`
   CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
     username TEXT UNIQUE NOT NULL,
     token TEXT UNIQUE NOT NULL,
     otp_secret TEXT
   )
-`).run();
+`
+).run();
 
-db.prepare(`
+db.prepare(
+	`
   CREATE TABLE IF NOT EXISTS files (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -46,18 +55,22 @@ db.prepare(`
     created_at INTEGER DEFAULT (strftime('%s', 'now')),
     expires_at INTEGER
   )
-`).run();
+`
+).run();
 
-db.prepare(`
+db.prepare(
+	`
   CREATE TABLE IF NOT EXISTS file_collections (
     id TEXT PRIMARY KEY,
     user_id TEXT,
     created_at INTEGER DEFAULT (strftime('%s', 'now')),
     expires_at INTEGER
   )
-`).run();
+`
+).run();
 
-db.prepare(`
+db.prepare(
+	`
   CREATE TABLE IF NOT EXISTS file_collection_items (
     collection_id TEXT NOT NULL,
     file_id TEXT NOT NULL,
@@ -65,6 +78,49 @@ db.prepare(`
     FOREIGN KEY (collection_id) REFERENCES file_collections(id) ON DELETE CASCADE,
     FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE
   )
-`).run();
+`
+).run();
+
+db.prepare(
+	`
+  CREATE TABLE IF NOT EXISTS pending_otp (
+    username TEXT PRIMARY KEY,
+    secret TEXT NOT NULL,
+    expires_at INTEGER NOT NULL,
+    attempts INTEGER DEFAULT 0
+  )
+`
+).run();
+
+db.prepare(
+	`
+  CREATE TABLE IF NOT EXISTS otp_lockouts (
+    username TEXT PRIMARY KEY,
+    ip TEXT,
+    locked_until INTEGER NOT NULL
+  )
+`
+).run();
+
+db.prepare(
+	`
+  CREATE TABLE IF NOT EXISTS failed_otp_attempts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL,
+    ip TEXT,
+    timestamp INTEGER NOT NULL
+  )
+`
+).run();
+
+db.prepare(
+	`
+  CREATE INDEX IF NOT EXISTS idx_failed_attempts_username_timestamp
+  ON failed_otp_attempts(username, timestamp)
+`
+).run();
+
+db.prepare(`DELETE FROM pending_otp WHERE expires_at < strftime('%s', 'now')`).run();
+db.prepare(`DELETE FROM failed_otp_attempts WHERE timestamp < strftime('%s', 'now') - 3600`).run();
 
 export default db;

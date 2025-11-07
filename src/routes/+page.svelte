@@ -1,7 +1,7 @@
-<!-- src/routes/+page.svelte (updated link) -->
+<!-- src/routes/+page.svelte -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation'; // SvelteKit
+	import { goto } from '$app/navigation';
 	export let data;
 
 	let content = '';
@@ -11,26 +11,40 @@
 
 	let username = '';
 	let otp = '';
-	let token = '';
 	let qrCodeDataUrl = '';
 	let showOtpInput = false;
 	let showLogin = false;
+	let isLoggedIn = false;
+	let currentUsername = '';
 
 	onMount(() => {
-		token = localStorage.getItem('token') || '';
-		username = localStorage.getItem('username') || '';
+		// Check if user is logged in via server-side data
+		isLoggedIn = data.isLoggedIn || false;
+		currentUsername = data.username || '';
 	});
 
 	async function generateOtp() {
+		qrCodeDataUrl = '';
+		showOtpInput = false;
+
 		const res = await fetch('/api/auth/otp/generate', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ username })
 		});
+
 		if (res.ok) {
 			const data = await res.json();
-			qrCodeDataUrl = data.qrCodeDataUrl;
-			showOtpInput = true;
+			if (data.registered) {
+				// User is already registered, prompt for OTP directly
+				showOtpInput = true;
+				alert('Please enter your OTP to log in.');
+			} else {
+				// New user, display QR code
+				qrCodeDataUrl = data.qrCodeDataUrl;
+				showOtpInput = true;
+				alert('Scan the QR code with your authenticator app and enter the OTP.');
+			}
 		} else {
 			const error = await res.text();
 			alert(error);
@@ -43,40 +57,50 @@
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ username, otp })
 		});
+
 		if (res.ok) {
 			const data = await res.json();
-			token = data.token;
-			localStorage.setItem('token', token);
-			localStorage.setItem('username', username);
+			isLoggedIn = true;
+			currentUsername = data.username;
 			showOtpInput = false;
 			qrCodeDataUrl = '';
 			showLogin = false;
+			otp = '';
 			alert('Logged in successfully!');
+			// Reload to get updated server data
+			window.location.reload();
 		} else {
 			const error = await res.text();
 			alert(error);
+			otp = ''; // Clear OTP input on failure
 		}
 	}
 
-	function logout() {
-		token = '';
-		username = '';
-		localStorage.removeItem('token');
-		localStorage.removeItem('username');
-		alert('Logged out successfully!');
+	async function logout() {
+		const res = await fetch('/api/auth/logout', {
+			method: 'POST'
+		});
+
+		if (res.ok) {
+			isLoggedIn = false;
+			currentUsername = '';
+			username = '';
+			alert('Logged out successfully!');
+			// Reload to clear server-side session
+			window.location.reload();
+		}
 	}
 
 	async function createPaste() {
 		loading = true;
 		const headers = { 'Content-Type': 'application/json' };
-		if (token) {
-			headers['Authorization'] = `Bearer ${token}`;
-		}
+
 		const res = await fetch('/api/paste', {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({ content, language })
 		});
+
 		if (res.ok) {
 			const data = await res.json();
 			id = data.id;
@@ -90,6 +114,7 @@
 	function copyURL() {
 		navigator.clipboard.writeText(`${window.location.origin}/${id}`);
 	}
+
 	const handleClick = () => goto(`/${id}`);
 </script>
 
@@ -117,6 +142,7 @@
 			>
 		{/if}
 	</h1>
+
 	<div class="space-y-4 rounded-lg border border-text p-4">
 		<textarea
 			bind:value={content}
@@ -162,9 +188,9 @@
 		<div class="auth-section">
 			<hr class="my-4 border-t border-neutral-900" />
 
-			{#if token}
+			{#if isLoggedIn}
 				<p>
-					Welcome, {username}!
+					Welcome, {currentUsername}!
 					<button class="border-0 hover:cursor-pointer hover:underline" on:click={logout}
 						>{'> Logout'}</button
 					>
@@ -185,7 +211,7 @@
 						</div>
 					{/if}
 					{#if showOtpInput}
-						<input type="text" bind:value={otp} placeholder="OTP" />
+						<input type="text" bind:value={otp} placeholder="OTP" maxlength="6" />
 						<button on:click={verifyOtp}>Verify</button>
 					{/if}
 				{/if}

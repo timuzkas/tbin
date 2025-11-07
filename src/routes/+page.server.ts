@@ -1,22 +1,34 @@
+import { validateAuth } from '$lib/auth';
 import db from '$lib/db';
 import { env } from '$env/dynamic/private';
+import type { PageServerLoad } from './$types';
 
-export async function load({ getClientAddress }) {
-  const clientAddress = getClientAddress();
-  const ban = db.prepare('SELECT * FROM bans WHERE ip = ?').get(clientAddress);
+export const load: PageServerLoad = async ({ cookies, getClientAddress }) => {
+	const user = validateAuth(cookies);
+	const clientAddress = getClientAddress();
 
-  const noLogin = env.LOGIN_ENABLED === 'false';
-  const showCredits = env.SHOW_CREDITS === 'TRUE';
-  const fileSharingEnabled = env.FILE_SHARING_ENABLED === 'TRUE';
+	const ban = db.prepare('SELECT * FROM bans WHERE ip = ?').get(clientAddress);
+	const noLogin = env.LOGIN_ENABLED === 'false';
+	const showCredits = env.SHOW_CREDITS === 'TRUE';
+	const fileSharingEnabled = env.FILE_SHARING_ENABLED === 'TRUE';
 
-  if (ban) {
-    return {
-      banned: true,
-      noLogin,
-      showCredits,
-      fileSharingEnabled
-    };
-  }
+	if (ban) {
+		return {
+			banned: true,
+			noLogin,
+			showCredits,
+			fileSharingEnabled,
+			isLoggedIn: false,
+			username: ''
+		};
+	}
 
-  return { banned: false, noLogin, showCredits, fileSharingEnabled };
-}
+	return {
+		banned: false,
+		noLogin,
+		showCredits,
+		fileSharingEnabled,
+		isLoggedIn: !!user,
+		username: user?.username || ''
+	};
+};

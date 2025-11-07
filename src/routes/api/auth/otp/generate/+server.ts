@@ -1,37 +1,37 @@
 import { json } from '@sveltejs/kit';
-import { randomUUID } from 'crypto';
 import db from '$lib/db';
 import { authenticator } from 'otplib';
 import qrcode from 'qrcode';
 
 export async function POST({ request }) {
-  const { username } = await request.json();
+	const { username } = await request.json();
 
-  if (!username) {
-    return new Response('Username is required.', { status: 400 });
-  }
+	if (!username) {
+		return new Response('Username is required.', { status: 400 });
+	}
 
-  let user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
-  let secret;
+	if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
+		return new Response('Invalid username format.', { status: 400 });
+	}
 
-  if (user && user.otp_secret) {
-    secret = user.otp_secret;
-  } else {
-    secret = authenticator.generateSecret();
-    const id = user ? user.id : randomUUID();
-    const token = user ? user.token : randomUUID();
-    if (user) {
-      db.prepare('UPDATE users SET otp_secret = ? WHERE id = ?').run(secret, id);
-    } else {
-      db.prepare(
-        'INSERT INTO users (id, username, token, otp_secret) VALUES (?, ?, ?, ?)'
-      ).run(id, username, token, secret);
-    }
-  }
+	let user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
 
-  const otpauth = authenticator.keyuri(username, 'tbin', secret);
+	if (user && user.otp_secret) {
+		return json({ registered: true });
+	} else {
+		const secret = authenticator.generateSecret();
+		const expiresAt = Math.floor(Date.now() / 1000) + 600;
 
-  const qrCodeDataUrl = await qrcode.toDataURL(otpauth);
+		db.prepare(
+			`
+			INSERT OR REPLACE INTO pending_otp (username, secret, expires_at, attempts)
+			VALUES (?, ?, ?, 0)
+		`
+		).run(username, secret, expiresAt);
 
-  return json({ qrCodeDataUrl });
+		const otpauth = authenticator.keyuri(username, 'tbin', secret);
+		const qrCodeDataUrl = await qrcode.toDataURL(otpauth);
+
+		return json({ qrCodeDataUrl, registered: false });
+	}
 }
