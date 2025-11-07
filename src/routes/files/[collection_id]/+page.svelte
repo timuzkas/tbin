@@ -166,7 +166,10 @@
 						({(file.size / 1024).toFixed(2)} KB)
 					</span>
 					{#if isOwner && loginEnabled}
-						<button on:click={() => deleteFile(file.id)} class="text-red-500 hover:underline">
+						<button
+							on:click={() => deleteFile(file.id)}
+							class="border-0 text-red-500 hover:cursor-pointer hover:underline"
+						>
 							Delete
 						</button>
 					{/if}
