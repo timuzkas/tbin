@@ -8,8 +8,15 @@ import { validateAuth } from '$lib/auth';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const UPLOADS_DIR = 'uploads';
-const RATE_LIMIT_WINDOW_MS = 30000;
-const MAX_REQUESTS_PER_WINDOW = 3;
+
+// Individual file upload rate limits
+const INDIVIDUAL_RATE_LIMIT_WINDOW_MS = 30000; // 30 seconds
+const MAX_INDIVIDUAL_REQUESTS_PER_WINDOW = 3;
+
+// Collection file upload rate limits
+const COLLECTION_RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
+const MAX_COLLECTION_REQUESTS_PER_WINDOW = 25;
+
 const OFFENSE_EXPIRATION_MS = 24 * 60 * 60 * 1000;
 const MAX_OFFENSES = 10;
 const noRateLimit = env.NO_RATE_LIMIT === 'true';
@@ -21,36 +28,9 @@ export async function POST({ request, cookies, getClientAddress }) {
 
 	const clientAddress = getClientAddress();
 
-	if (!noRateLimit) {
-		const ban = db.prepare('SELECT * FROM bans WHERE ip = ?').get(clientAddress);
-		if (ban) {
-			throw error(403, 'You have been permanently banned for abuse.');
-		}
-
-		const offenses = db
-			.prepare('SELECT * FROM offenses WHERE ip = ? AND timestamp > ?')
-			.all(clientAddress, Date.now() - RATE_LIMIT_WINDOW_MS);
-
-		if (offenses.length >= MAX_REQUESTS_PER_WINDOW) {
-			db.prepare('INSERT INTO offenses (ip, timestamp) VALUES (?, ?)').run(
-				clientAddress,
-				Date.now()
-			);
-
-			const allOffenses = db
-				.prepare('SELECT * FROM offenses WHERE ip = ? AND timestamp > ?')
-				.all(clientAddress, Date.now() - OFFENSE_EXPIRATION_MS);
-
-			if (allOffenses.length > MAX_OFFENSES) {
-				db.prepare('INSERT OR IGNORE INTO bans (ip) VALUES (?)').run(clientAddress);
-			}
-
-			throw error(429, 'Rate limit exceeded. Please wait before uploading another file.');
-		}
-	}
-
 	const formData = await request.formData();
 	const file = formData.get('file') as File;
+	const collection_id = formData.get('collection_id') as string | null;
 
 	if (!file) {
 		throw error(400, 'No file uploaded.');
@@ -58,6 +38,48 @@ export async function POST({ request, cookies, getClientAddress }) {
 
 	if (file.size > MAX_FILE_SIZE) {
 		throw error(413, 'File is too large.');
+	}
+
+	// Rate Limiting Logic
+	if (!noRateLimit) {
+		const ban = db.prepare('SELECT * FROM bans WHERE ip = ?').get(clientAddress);
+		if (ban) {
+			throw error(403, 'You have been permanently banned for abuse.');
+		}
+
+		let rateLimitWindow = INDIVIDUAL_RATE_LIMIT_WINDOW_MS;
+		let maxRequests = MAX_INDIVIDUAL_REQUESTS_PER_WINDOW;
+		let rateLimitKey = clientAddress; // Default to IP for individual uploads
+
+		if (collection_id) {
+			// For collection uploads, rate limit per collection_id (or user_id if available)
+			rateLimitWindow = COLLECTION_RATE_LIMIT_WINDOW_MS;
+			maxRequests = MAX_COLLECTION_REQUESTS_PER_WINDOW;
+			// If a user is logged in, use user_id for collection rate limiting, otherwise use collection_id
+			const user = validateAuth(cookies);
+			rateLimitKey = user?.id || collection_id;
+		}
+
+		const offenses = db
+			.prepare('SELECT * FROM offenses WHERE ip = ? AND timestamp > ?')
+			.all(rateLimitKey, Date.now() - rateLimitWindow);
+
+		if (offenses.length >= maxRequests) {
+			db.prepare('INSERT INTO offenses (ip, timestamp) VALUES (?, ?)').run(
+				rateLimitKey,
+				Date.now()
+			);
+
+			const allOffenses = db
+				.prepare('SELECT * FROM offenses WHERE ip = ? AND timestamp > ?')
+				.all(rateLimitKey, Date.now() - OFFENSE_EXPIRATION_MS);
+
+			if (allOffenses.length > MAX_OFFENSES) {
+				db.prepare('INSERT OR IGNORE INTO bans (ip) VALUES (?)').run(rateLimitKey);
+			}
+
+			throw error(429, 'Rate limit exceeded. Please wait before uploading another file.');
+		}
 	}
 
 	const id = randomUUID();
@@ -78,8 +100,8 @@ export async function POST({ request, cookies, getClientAddress }) {
 	}
 
 	db.prepare(
-		'INSERT INTO files (id, name, type, size, user_id, expires_at) VALUES (?, ?, ?, ?, ?, ?)'
-	).run(id, sanitizedFilename, file.type, file.size, userId, expires_at);
+		'INSERT INTO files (id, name, type, size, user_id, expires_at, collection_id) VALUES (?, ?, ?, ?, ?, ?, ?)'
+	).run(id, sanitizedFilename, file.type, file.size, userId, expires_at, collection_id);
 
 	if (!noRateLimit) {
 		db.prepare('INSERT INTO offenses (ip, timestamp) VALUES (?, ?)').run(clientAddress, Date.now());
