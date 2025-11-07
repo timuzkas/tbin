@@ -1,4 +1,5 @@
 import { json } from '@sveltejs/kit';
+import { dev } from '$app/environment';
 import db from '$lib/db';
 import { authenticator } from 'otplib';
 import { randomUUID } from 'crypto';
@@ -125,7 +126,7 @@ export async function POST(event) {
 		cookies.set('auth_token', token, {
 			path: '/',
 			httpOnly: true,
-			secure: true,
+			secure: !dev,
 			sameSite: 'strict',
 			maxAge: 60 * 60 * 24 * 30
 		});
@@ -137,7 +138,7 @@ export async function POST(event) {
 		cookies.set('auth_token', user.token, {
 			path: '/',
 			httpOnly: true,
-			secure: true,
+			secure: !dev,
 			sameSite: 'strict',
 			maxAge: 60 * 60 * 24 * 30
 		});
