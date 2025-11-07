@@ -98,7 +98,7 @@
 
 <main class="mx-auto max-w-4xl space-y-6 p-6">
 	<div class="flex items-center justify-between">
-		<a href="/files/upload" class="text-3xl text-accent hover:cursor-pointer hover:underline">
+		<a href="/" class="text-3xl text-accent hover:cursor-pointer hover:underline">
 			> File Collection
 		</a>
 		{#if isOwner && loginEnabled}
