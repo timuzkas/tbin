@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	export let data;
+	const { isAuthenticated, allowAnonymousUploads } = data;
+
 	let fileInput: HTMLInputElement;
 	let uploadedCollectionId: string | null = null;
 	let loading = false;
@@ -82,20 +84,29 @@
 		>> Upload File</a
 	>
 	<div class="space-y-4 rounded-lg border border-text p-4">
-		<p class="text-neutral-400">
-			Limits for {data.isAuthenticated ? 'authenticated' : 'anonymous'} users: Max {data.maxCollectionFiles}
-			files, {data.maxCollectionSizeMB}MB total. (Single file: {MAX_SINGLE_FILE_SIZE_MB}MB)
-		</p>
-		<input
-			bind:this={fileInput}
-			type="file"
-			multiple
-			class="hover:cursor-pointer hover:text-neutral-200"
-		/>
-		<button on:click={uploadFiles} disabled={loading} class="px-4 py-2">
-			{loading ? 'Uploading...' : 'Upload Files'}
-		</button>
-		{#if errorMessage}<p class="text-red-500">{errorMessage}</p>{/if}
+		{#if !isAuthenticated && !allowAnonymousUploads}
+			<p class="text-red-500">Anonymous uploads are disabled. Please log in to upload files.</p>
+		{:else}
+			<p class="text-neutral-400">
+				Limits for {isAuthenticated ? 'authenticated' : 'anonymous'} users: Max {data.maxCollectionFiles}
+				files, {data.maxCollectionSizeMB}MB total. (Single file: {MAX_SINGLE_FILE_SIZE_MB}MB)
+			</p>
+			<input
+				bind:this={fileInput}
+				type="file"
+				multiple
+				class="hover:cursor-pointer hover:text-neutral-200"
+				disabled={loading}
+			/>
+			<button
+				on:click={uploadFiles}
+				disabled={loading}
+				class="px-4 py-2 hover:cursor-pointer hover:underline"
+			>
+				{loading ? 'Uploading...' : 'Upload Files'}
+			</button>
+			{#if errorMessage}<p class="text-red-500">{errorMessage}</p>{/if}
+		{/if}
 	</div>
 	{#if uploadedCollectionId}
 		<p>Files uploaded!</p>

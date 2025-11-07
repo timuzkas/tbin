@@ -12,8 +12,9 @@ const OFFENSE_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const MAX_OFFENSES = 50;
 const noRateLimit = env.NO_RATE_LIMIT === 'true';
 
-export async function POST({ request, cookies, event }) {
-	if (env.FILE_SHARING_ENABLED !== 'TRUE') {
+export async function POST(event) {
+	const { request, cookies } = event;
+	if (!(env.FILE_SHARING_ENABLED?.toLowerCase() === 'true' || env.FILE_SHARING_ENABLED === '1')) {
 		throw error(404, 'Not Found');
 	}
 
@@ -74,11 +75,17 @@ export async function POST({ request, cookies, event }) {
 
 	const collection_id = randomUUID();
 
-	db.prepare('INSERT INTO file_collections (id, user_id, expires_at) VALUES (?, ?, ?)').run(
-		collection_id,
-		userId,
-		expires_at
-	);
+		db.prepare('INSERT INTO file_collections (id, user_id, expires_at, created_at) VALUES (?, ?, ?, ?) ').run(
+
+			collection_id,
+
+			userId,
+
+			expires_at,
+
+			Date.now()
+
+		);
 
 	const insertItem = db.prepare(
 		'INSERT INTO file_collection_items (collection_id, file_id) VALUES (?, ?)'

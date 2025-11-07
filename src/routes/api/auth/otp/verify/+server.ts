@@ -7,7 +7,8 @@ import { log } from '$lib/log';
 const MAX_OTP_ATTEMPTS = 5;
 const LOCKOUT_DURATION = 900;
 
-export async function POST({ request, cookies, event }) {
+export async function POST(event) {
+	const { request, cookies } = event;
 	const { username, otp } = await request.json();
 	const ip = event.locals.ip;
 

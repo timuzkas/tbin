@@ -156,7 +156,11 @@
 				placeholder="language (e.g. js, py, html)"
 				class="flex-1 p-2"
 			/>
-			<button on:click={createPaste} disabled={loading} class="px-4 py-2">
+			<button
+				on:click={createPaste}
+				disabled={loading}
+				class="px-4 py-2 hover:cursor-pointer hover:underline"
+			>
 				{loading ? '...' : 'upload'}
 			</button>
 		</div>
@@ -194,6 +198,22 @@
 					<button class="border-0 hover:cursor-pointer hover:underline" on:click={logout}
 						>{'> Logout'}</button
 					>
+					{#if data.userId && !data.noLogin}
+						<a
+							href={`/user/${data.userId}/pastes`}
+							class="border-0 hover:cursor-pointer hover:underline"
+						>
+							{'/ my_pastes'}
+						</a>
+						{#if data.fileSharingEnabled}
+							<a
+								href={`/user/${data.userId}/files`}
+								class="border-0 hover:cursor-pointer hover:underline"
+							>
+								{' / my_files'}
+							</a>
+						{/if}
+					{/if}
 				</p>
 			{:else}
 				<button
@@ -212,7 +232,7 @@
 					{/if}
 					{#if showOtpInput}
 						<input type="text" bind:value={otp} placeholder="OTP" maxlength="6" />
-						<button on:click={verifyOtp}>Verify</button>
+						<button style="" on:click={verifyOtp}>Verify</button>
 					{/if}
 				{/if}
 			{/if}

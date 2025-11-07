@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import db from '$lib/db';
 import { log } from '$lib/log';
 
-export async function POST({ event }) {
+export async function POST(event) {
   const clientAddress = event.locals.ip;
 
   if (clientAddress !== '127.0.0.1' && clientAddress !== '::1') {

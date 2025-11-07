@@ -37,8 +37,9 @@ abuse blocking and purifying (isomorphic-dompurify).
 - `MAX_OFFENSES`: Number of offenses before an IP is permanently banned (default: 5).
 - `LOGIN_ENABLED`: Set to `false` to hide the login UI on the frontend.
 - `RATE_LIMIT_ENABLED`: Set to `false` to disable all rate limiting and banning.
-- `SHOW_CREDITS`: Set to `TRUE` to display the "made by timuzkas" credit on the frontend.
-- `FILE_SHARING_ENABLED`: Set to `TRUE` to enable the experimental file sharing feature.
+- `SHOW_CREDITS`: Set to `true` to display the "made by timuzkas" credit on the frontend.
+- `FILE_SHARING_ENABLED`: Set to `true` to enable the experimental file sharing feature.
+- `ALLOW_ANONYMOUS_UPLOADS`: set to `true` to enable guest file uploads.
 - `ADMIN_PASSWORD`: Set this to the **SHA-256 hash** of your admin password combined with the `ADMIN_PASSWORD_SALT`.
 - `ADMIN_PASSWORD_SALT`: A **random, secret string** used to salt the admin password hash. This prevents rainbow table attacks. You can generate a random string using `openssl rand -hex 32`.
 
@@ -56,7 +57,7 @@ bun run dev
 LOGIN_ENABLED=false RATE_LIMIT_ENABLED=false bun run dev
 
 # To enable file sharing during development:
-FILE_SHARING_ENABLED=TRUE bun run dev
+FILE_SHARING_ENABLED=true bun run dev
 
 # To access the admin panel during development:
 # 1. Generate a random salt: openssl rand -hex 32

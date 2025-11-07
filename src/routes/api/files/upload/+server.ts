@@ -15,14 +15,16 @@ const MAX_REQUESTS_PER_WINDOW = 3;
 const OFFENSE_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_OFFENSES = 50;
 const noRateLimit = env.NO_RATE_LIMIT === 'true';
+const ALLOW_ANONYMOUS_UPLOADS = env.ALLOW_ANONYMOUS_UPLOADS === 'true';
 
 const ANONYMOUS_MAX_COLLECTION_FILES = 10;
 const ANONYMOUS_MAX_COLLECTION_SIZE_MB = 20;
 const AUTHENTICATED_MAX_COLLECTION_FILES = 50;
 const AUTHENTICATED_MAX_COLLECTION_SIZE_MB = 100;
 
-export async function POST({ request, cookies, event }) {
-	if (env.FILE_SHARING_ENABLED !== 'TRUE') throw error(404, 'Not Found');
+export async function POST(event) {
+	const { request, cookies } = event;
+	if (!(env.FILE_SHARING_ENABLED?.toLowerCase() === 'true' || env.FILE_SHARING_ENABLED === '1')) throw error(404, 'Not Found');
 
 	const clientAddress = event.locals.ip;
 	const formData = await request.formData();
@@ -31,33 +33,34 @@ export async function POST({ request, cookies, event }) {
 
 	if (collection_id === '' || collection_id === 'null') collection_id = null;
 
-	if (!noRateLimit && !collection_id) {
-		const ban = db.prepare('SELECT * FROM bans WHERE ip = ?').get(clientAddress);
-		if (ban) throw error(403, 'You have been permanently banned for abuse.');
-
-		const offenses = db
-			.prepare('SELECT * FROM offenses WHERE ip = ? AND timestamp > ?')
-			.all(clientAddress, Date.now() - RATE_LIMIT_WINDOW_MS);
-		if (offenses.length >= MAX_REQUESTS_PER_WINDOW) {
-			db.prepare('INSERT INTO offenses (ip, timestamp) VALUES (?, ?)').run(
-				clientAddress,
-				Date.now()
-			);
-			const allOffenses = db
-				.prepare('SELECT * FROM offenses WHERE ip = ? AND timestamp > ?')
-				.all(clientAddress, Date.now() - OFFENSE_EXPIRATION_MS);
-			if (allOffenses.length > MAX_OFFENSES) {
-				db.prepare('INSERT OR IGNORE INTO bans (ip) VALUES (?)').run(clientAddress);
-			}
-			throw error(429, 'Rate limit exceeded. Please wait before uploading another file.');
-		}
-	}
-
-	if (!file || file.size === 0) throw error(400, 'No file uploaded.');
-	if (file.size > MAX_FILE_SIZE) throw error(413, 'File is too large.');
-
 	const user = validateAuth(cookies);
 	const userId = user?.id || null;
+
+	// Check for anonymous uploads if not allowed
+	if (!userId && !ALLOW_ANONYMOUS_UPLOADS) {
+		throw error(401, 'Unauthorized: Anonymous uploads are disabled.');
+	}
+
+	// --- OWNERSHIP CHECK FOR COLLECTION ---
+	if (collection_id) {
+		const collection = db
+			.prepare('SELECT user_id FROM file_collections WHERE id = ?')
+			.get(collection_id);
+		if (!collection) {
+			throw error(404, 'Collection not found.');
+		}
+
+		// If the collection has an owner, ensure the current user is that owner
+		if (collection.user_id !== null) {
+			if (!user) {
+				throw error(401, 'Unauthorized: Must be logged in to upload to an owned collection.');
+			}
+			if (collection.user_id !== user.id) {
+				throw error(403, 'Forbidden: You do not own this collection.');
+			}
+		}
+	}
+	// --- END OWNERSHIP CHECK ---
 
 	if (collection_id) {
 		const collectionFiles = db
@@ -96,10 +99,17 @@ export async function POST({ request, cookies, event }) {
 	).run(id, sanitizedFilename, file.type, file.size, userId, expires_at, collection_id);
 
 	if (collection_id) {
-		db.prepare('INSERT INTO file_collection_items (collection_id, file_id) VALUES (?, ?)').run(collection_id, id);
-		log(`File ${id} (${sanitizedFilename}) added to collection ${collection_id} by user ${userId || 'anonymous'} from IP ${clientAddress}`);
+		db.prepare('INSERT INTO file_collection_items (collection_id, file_id) VALUES (?, ?)').run(
+			collection_id,
+			id
+		);
+		log(
+			`File ${id} (${sanitizedFilename}) added to collection ${collection_id} by user ${userId || 'anonymous'} from IP ${clientAddress}`
+		);
 	} else {
-		log(`File ${id} (${sanitizedFilename}) uploaded by user ${userId || 'anonymous'} from IP ${clientAddress}`);
+		log(
+			`File ${id} (${sanitizedFilename}) uploaded by user ${userId || 'anonymous'} from IP ${clientAddress}`
+		);
 	}
 
 	if (!noRateLimit) {

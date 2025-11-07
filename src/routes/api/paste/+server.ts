@@ -126,7 +126,7 @@ export async function POST(event) {
 
 	const id = randomUUID().slice(0, 8);
 
-	db.prepare('INSERT INTO pastes (id, content, language, user_id) VALUES (?, ?, ?, ?) ').run(
+	db.prepare('INSERT INTO pastes (id, content, language, user_id, created_at) VALUES (?, ?, ?, ?, ?) ').run(
 
 		id,
 
@@ -134,7 +134,9 @@ export async function POST(event) {
 
 		language || 'plaintext',
 
-		userId
+		userId,
+
+		Date.now()
 
 	);
 

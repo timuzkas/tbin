@@ -1,0 +1,25 @@
+import { error } from '@sveltejs/kit';
+import { validateAuth } from '$lib/auth';
+import db from '$lib/db';
+import { env } from '$env/dynamic/private';
+
+export async function load(event) {
+  const { params, cookies } = event;
+
+  if (env.LOGIN_ENABLED === 'false') {
+    throw error(404, 'Not Found');
+  }
+
+  const user = validateAuth(cookies);
+
+  if (!user || user.id !== params.userId) {
+    throw error(403, 'Forbidden');
+  }
+
+  const collections = db.prepare('SELECT id, created_at FROM file_collections WHERE user_id = ? ORDER BY created_at DESC').all(user.id);
+
+  return {
+    collections,
+    username: user.username,
+  };
+}

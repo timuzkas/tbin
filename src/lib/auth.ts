@@ -1,3 +1,4 @@
+import { env } from '$env/dynamic/private';
 import db from '$lib/db';
 import type { Cookies } from '@sveltejs/kit';
 
@@ -8,6 +9,10 @@ export interface AuthUser {
 }
 
 export function validateAuth(cookies: Cookies): AuthUser | null {
+	const LOGIN_ENABLED = env.LOGIN_ENABLED?.toLowerCase() === 'true';
+	if (!LOGIN_ENABLED) {
+		return null;
+	}
 	const token = cookies.get('auth_token');
 
 	if (!token) {

@@ -8,7 +8,8 @@ import { hashPassword } from '$lib/utils';
 
 const UPLOADS_DIR = 'uploads';
 
-export async function POST({ request, event }) {
+export async function POST(event) {
+  const { request } = event;
   const clientAddress = event.locals.ip;
 
   if (clientAddress !== '127.0.0.1' && clientAddress !== '::1') {
