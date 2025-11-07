@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import db from '$lib/db';
 import { authenticator } from 'otplib';
 import qrcode from 'qrcode';
+import { log } from '$lib/log';
 
 export async function POST({ request }) {
 	const { username } = await request.json();
@@ -29,9 +30,11 @@ export async function POST({ request }) {
 		`
 		).run(username, secret, expiresAt);
 
-		const otpauth = authenticator.keyuri(username, 'tbin', secret);
-		const qrCodeDataUrl = await qrcode.toDataURL(otpauth);
+  const otpauth = authenticator.keyuri(username, 'tbin', secret);
+  const qrCodeDataUrl = await qrcode.toDataURL(otpauth);
 
-		return json({ qrCodeDataUrl, registered: false });
+  log(`OTP QR code generated for username: ${username}. Registered: false, Secret generated.`);
+
+  return json({ qrCodeDataUrl, registered: false, secret });
 	}
 }

@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import db from '$lib/db';
 import { authenticator } from 'otplib';
 import { randomUUID } from 'crypto';
+import { log } from '$lib/log';
 
 const MAX_OTP_ATTEMPTS = 5;
 const LOCKOUT_DURATION = 900;
@@ -115,6 +116,7 @@ export async function POST({ request, cookies, getClientAddress }) {
 			);
 
 			db.prepare('DELETE FROM pending_otp WHERE username = ?').run(username);
+			log(`New user registered and logged in: ${username} (ID: ${id}) from IP: ${ip}`);
 		} catch (error) {
 			return new Response('Failed to create user.', { status: 500 });
 		}
@@ -141,6 +143,7 @@ export async function POST({ request, cookies, getClientAddress }) {
 
 		db.prepare('DELETE FROM failed_otp_attempts WHERE username = ?').run(username);
 
+		log(`Existing user logged in: ${username} (ID: ${user.id}) from IP: ${ip}`);
 		return json({ success: true, username });
 	}
 }

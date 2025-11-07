@@ -44,19 +44,43 @@ db.prepare(
 `
 ).run();
 
-db.prepare(
-	`
+db.prepare(`
+
   CREATE TABLE IF NOT EXISTS files (
+
     id TEXT PRIMARY KEY,
+
     name TEXT NOT NULL,
+
     type TEXT NOT NULL,
+
     size INTEGER NOT NULL,
+
     user_id TEXT,
+
     created_at INTEGER DEFAULT (strftime('%s', 'now')),
+
     expires_at INTEGER
+
   )
-`
-).run();
+
+`).run();
+
+
+
+// Check if collection_id column exists, and add it if not
+
+const filesColumns = db.prepare("PRAGMA table_info(files)").all();
+
+const hasCollectionId = filesColumns.some(column => column.name === 'collection_id');
+
+
+
+if (!hasCollectionId) {
+
+  db.prepare("ALTER TABLE files ADD COLUMN collection_id TEXT").run();
+
+}
 
 db.prepare(
 	`
