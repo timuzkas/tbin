@@ -1,21 +1,25 @@
 import { json } from '@sveltejs/kit';
 import db from '$lib/db';
+import { validateAuth } from '$lib/auth';
 
-export async function GET({ locals }) {
-  const userId = locals.user?.id;
-  const now = Math.floor(Date.now() / 1000);
+export async function GET({ cookies, locals }) {
+	const user = validateAuth(cookies);
+	const ip = locals.ip;
+	const now = Math.floor(Date.now() / 1000);
 
-  let notifications = [];
+	const notifications = db
+		.prepare(
+			`SELECT message FROM notifications 
+     WHERE 
+       (
+         user_id = ? 
+         OR (ip = ? AND user_id IS NULL)
+         OR (user_id IS NULL AND ip IS NULL)
+       )
+       AND (expires_at IS NULL OR expires_at > ?)`
+		)
+		.all(user ? user.id : null, ip, now);
 
-  if (userId) {
-    notifications = db.prepare(
-      'SELECT message FROM notifications WHERE (user_id IS NULL OR user_id = ?) AND (expires_at IS NULL OR expires_at > ?)'
-    ).all(userId, now);
-  } else {
-    notifications = db.prepare(
-      'SELECT message FROM notifications WHERE user_id IS NULL AND (expires_at IS NULL OR expires_at > ?)'
-    ).all(now);
-  }
-
-  return json(notifications);
+	return json(notifications);
 }
+

@@ -81,14 +81,14 @@
 </script>
 
 <svelte:head>
-	<title>{paste?.id || 'paste'}</title>
+	<title>{paste?.title || paste?.id || 'paste'}</title>
 </svelte:head>
 <main class="mx-auto max-w-full space-y-6 p-6 md:max-w-[70%]">
 	{#if paste}
 		<div class="sticky top-0 z-10 flex items-center justify-between bg-bg py-4">
 			<a
-				on:click={() => (location.href = '/')}
-				class="text-md text-3xl text-accent hover:cursor-pointer hover:underline">> {paste.id}</a
+				href="/"
+				class="text-md text-3xl text-accent hover:cursor-pointer hover:underline">> {paste.title || paste.id}</a
 			>
 			<div class="flex items-center space-x-2">
 				{#if isOwner && loginEnabled}

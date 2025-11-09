@@ -153,14 +153,34 @@
 	}
 
 	let rateLimitAction = '';
-
-	let rateLimitMaxOffenses: number | null = null;
-
+	let rateLimitUserType = '';
+	let rateLimitType = '';
+	let rateLimitValue: number | null = null;
 	let rateLimitTimeWindow: number | null = null;
-
-	let rateLimitUserId = '';
+	let rateLimitBanThreshold: number | null = 10;
+	let editingRateLimit: { action: string; user_type: string } | null = null;
 
 	let rateLimits = [];
+
+	function startEditing(limit) {
+		editingRateLimit = { action: limit.action, user_type: limit.user_type };
+		rateLimitAction = limit.action;
+		rateLimitUserType = limit.user_type;
+		rateLimitType = limit.type;
+		rateLimitValue = limit.limit_value;
+		rateLimitTimeWindow = limit.time_window_seconds;
+		rateLimitBanThreshold = limit.ban_threshold;
+	}
+
+	function cancelEditing() {
+		editingRateLimit = null;
+		rateLimitAction = '';
+		rateLimitUserType = '';
+		rateLimitType = '';
+		rateLimitValue = null;
+		rateLimitTimeWindow = null;
+		rateLimitBanThreshold = 10;
+	}
 
 	let guestFileUploadsEnabled = false;
 	let guestPasteCreationsEnabled = false;
@@ -205,49 +225,17 @@
 		}
 	}
 
-	$: if (rateLimitAction) {
-		switch (rateLimitAction) {
-			case 'paste_creation':
-				rateLimitMaxOffenses = 5;
-				rateLimitTimeWindow = 3600;
-				break;
-			case 'file_upload':
-				rateLimitMaxOffenses = 3;
-				rateLimitTimeWindow = 3600;
-				break;
-			case 'login_attempt':
-				rateLimitMaxOffenses = 5;
-				rateLimitTimeWindow = 600;
-				break;
-			case 'otp_generation':
-				rateLimitMaxOffenses = 3;
-				rateLimitTimeWindow = 300;
-				break;
-			case 'api_request':
-				rateLimitMaxOffenses = 100;
-				rateLimitTimeWindow = 60;
-				break;
-			default:
-				rateLimitMaxOffenses = null;
-				rateLimitTimeWindow = null;
-		}
-	} else {
-		rateLimitMaxOffenses = null;
-		rateLimitTimeWindow = null;
-	}
-
 	const rateLimitActions = [
 		'paste_creation',
-		'file_upload',
+		'collection_creation',
 		'login_attempt',
 		'otp_generation',
 		'api_request'
 	];
 
 	const rateLimitUserTypes = [
-		{ label: 'All Users', value: 'all' },
-		{ label: 'Guests', value: 'guest' },
-		{ label: 'Authorized Users', value: 'authorized' }
+		{ label: 'Guests', value: '__GUEST__' },
+		{ label: 'Authorized Users', value: '__AUTH__' }
 	];
 
 	async function fetchRateLimits() {
@@ -267,22 +255,9 @@
 	}
 
 	async function saveRateLimit() {
-		if (!rateLimitAction || rateLimitMaxOffenses === null || rateLimitTimeWindow === null) {
-			alert('Action, Max Offenses, and Time Window are required.');
+		if (!rateLimitAction || !rateLimitUserType || !rateLimitType || rateLimitValue === null) {
+			alert('Action, User Type, Type and Limit Value are required.');
 			return;
-		}
-
-		let userIdToSend: string | null | undefined = null;
-		if (rateLimitUserId === 'all') {
-			userIdToSend = null; // Global rate limit
-		} else if (rateLimitUserId === 'guest') {
-			userIdToSend = '__GUEST__'; // Unauthenticated users
-		} else if (rateLimitUserId === 'authorized') {
-			userIdToSend = '__AUTH__'; // Authenticated users
-		} else {
-			// This case should ideally not be hit with the current select options
-			// but if a specific user ID was to be entered, it would go here.
-			userIdToSend = rateLimitUserId;
 		}
 
 		const res = await fetch('/api/admin/rate-limits', {
@@ -293,44 +268,42 @@
 			},
 			body: JSON.stringify({
 				action: rateLimitAction,
-				max_offenses: rateLimitMaxOffenses,
-				time_window_seconds: rateLimitTimeWindow,
-				userId: userIdToSend
+				user_type: rateLimitUserType,
+				type: rateLimitType,
+				limit_value: rateLimitValue,
+				time_window_seconds: rateLimitType === 'limit' ? rateLimitTimeWindow : null,
+				ban_threshold: rateLimitBanThreshold,
+				is_editing: editingRateLimit !== null,
+				original_action: editingRateLimit?.action,
+				original_user_type: editingRateLimit?.user_type
 			})
 		});
 
 		if (res.ok) {
 			fetchRateLimits();
-			rateLimitAction = '';
-			rateLimitMaxOffenses = null;
-			rateLimitTimeWindow = null;
-			rateLimitUserId = '';
+			cancelEditing();
 		} else {
 			const errorText = await res.text();
 			alert(`Error saving rate limit: ${errorText}`);
 		}
 	}
 
-	async function deleteRateLimit(action: string, userId: string | null) {
+	async function deleteRateLimit(action: string, user_type: string) {
 		if (!confirm('Are you sure you want to delete this rate limit?')) return;
 
 		const res = await fetch('/api/admin/rate-limits', {
 			method: 'DELETE',
-
 			headers: {
 				Authorization: `Bearer ${password}`,
-
 				'Content-Type': 'application/json'
 			},
-
-			body: JSON.stringify({ action, userId })
+			body: JSON.stringify({ action, user_type })
 		});
 
 		if (res.ok) {
 			fetchRateLimits();
 		} else {
 			const errorText = await res.text();
-
 			alert(`Error deleting rate limit: ${errorText}`);
 		}
 	}
@@ -342,9 +315,7 @@
 	if (advancedAdmin) {
 		onMount(() => {
 			fetchNotifications();
-
 			fetchRateLimits();
-
 			fetchSettings();
 		});
 	}
@@ -663,8 +634,8 @@
 
 <main class="mx-auto max-w-2xl space-y-6 p-6">
 	<a
-		class="mb-4 block text-3xl text-accent hover:cursor-pointer hover:underline"
 		on:click={() => (location.href = '/')}
+		class="mb-4 block text-3xl text-accent hover:cursor-pointer hover:underline"
 	>
 		> Admin panel
 	</a>
@@ -882,7 +853,7 @@
 					{#each notifications as notification}
 						<li>
 							{notification.message} ({notification.user_id || 'All users'}) - Expires: {new Date(
-								notification.expires_at
+								notification.expires_at * 1000
 							).toLocaleString()}
 							<button
 								on:click={() => deleteNotification(notification.id)}
@@ -904,28 +875,52 @@
 							<option value={action}>{action}</option>
 						{/each}
 					</select>
-					<input type="number" bind:value={rateLimitMaxOffenses} placeholder="Max Offenses" />
-					<input
-						type="number"
-						bind:value={rateLimitTimeWindow}
-						placeholder="Time Window (seconds)"
-					/>
-					<select bind:value={rateLimitUserId}>
+					<select bind:value={rateLimitUserType}>
 						<option value="">Select User Type</option>
 						{#each rateLimitUserTypes as type}
 							<option value={type.value}>{type.label}</option>
 						{/each}
 					</select>
-					<button on:click={saveRateLimit} class="px-4 py-2">Save Rate Limit</button>
+					<select bind:value={rateLimitType}>
+						<option value="">Select Type</option>
+						<option value="cooldown">Cooldown</option>
+						<option value="limit">Limit</option>
+					</select>
+					<input type="number" bind:value={rateLimitValue} placeholder="Limit Value" />
+					{#if rateLimitType === 'limit'}
+						<input
+							type="number"
+							bind:value={rateLimitTimeWindow}
+							placeholder="Time Window (seconds)"
+						/>
+					{/if}
+					<input
+						type="number"
+						bind:value={rateLimitBanThreshold}
+						placeholder="Ban Threshold (e.g., 10)"
+					/>
+					<button on:click={saveRateLimit} class="px-4 py-2"
+						>{#if editingRateLimit}Update Rate Limit{:else}Save Rate Limit{/if}</button
+					>
+					{#if editingRateLimit}
+						<button on:click={cancelEditing} class="px-4 py-2">Cancel</button>
+					{/if}
 				</div>
 
 				<ul class="mt-4 list-disc pl-5">
 					{#each rateLimits as limit}
 						<li>
-							{limit.action} - Max Offenses: {limit.max_offenses}, Time Window: {limit.time_window_seconds}s
-							({limit.user_id || 'All users'})
+							{limit.action} ({limit.user_type}) - {limit.type}: {limit.limit_value}
+							{#if limit.type === 'limit'}
+								per {limit.time_window_seconds}s
+							{/if}
+							(Ban at {limit.ban_threshold})
 							<button
-								on:click={() => deleteRateLimit(limit.action, limit.user_id)}
+								on:click={() => startEditing(limit)}
+								class="ml-2 border-0 text-blue-500 hover:underline">Edit</button
+							>
+							<button
+								on:click={() => deleteRateLimit(limit.action, limit.user_type)}
 								class="ml-2 border-0 text-red-500 hover:underline">Delete</button
 							>
 						</li>

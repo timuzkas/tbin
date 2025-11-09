@@ -12,15 +12,32 @@ export async function GET({ request }) {
 export async function POST({ request }) {
   validateAdmin(request);
 
-  const { action, max_offenses, time_window_seconds, userId } = await request.json();
+  const { 
+    action, 
+    user_type, 
+    type, 
+    limit_value, 
+    time_window_seconds, 
+    ban_threshold,
+    is_editing,
+    original_action,
+    original_user_type 
+  } = await request.json();
 
-  if (!action || max_offenses === undefined || time_window_seconds === undefined) {
-    throw error(400, 'Action, max_offenses, and time_window_seconds are required.');
+  if (!action || !user_type || !type || limit_value === undefined) {
+    throw error(400, 'Action, user_type, type, and limit_value are required.');
+  }
+
+  if (is_editing) {
+    // If the primary key has changed, delete the old record
+    if (action !== original_action || user_type !== original_user_type) {
+      db.prepare('DELETE FROM rate_limits WHERE action = ? AND user_type = ?').run(original_action, original_user_type);
+    }
   }
 
   db.prepare(
-    'INSERT OR REPLACE INTO rate_limits (action, max_offenses, time_window_seconds, user_id) VALUES (?, ?, ?, ?)'
-  ).run(action, max_offenses, time_window_seconds, userId);
+    'INSERT OR REPLACE INTO rate_limits (action, user_type, type, limit_value, time_window_seconds, ban_threshold) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(action, user_type, type, limit_value, time_window_seconds, ban_threshold);
 
   return json({ message: 'Rate limit saved successfully.' });
 }
@@ -28,13 +45,13 @@ export async function POST({ request }) {
 export async function DELETE({ request }) {
   validateAdmin(request);
 
-  const { action, userId } = await request.json();
+  const { action, user_type } = await request.json();
 
-  if (!action) {
-    throw error(400, 'Action is required.');
+  if (!action || !user_type) {
+    throw error(400, 'Action and user_type are required.');
   }
 
-  db.prepare('DELETE FROM rate_limits WHERE action = ? AND (user_id = ? OR user_id IS NULL)').run(action, userId);
+  db.prepare('DELETE FROM rate_limits WHERE action = ? AND user_type = ?').run(action, user_type);
 
-  return json({ message: `Rate limit for action ${action} and user ${userId || 'all'} deleted successfully.` });
+  return json({ message: `Rate limit for action ${action} and user type ${user_type} deleted successfully.` });
 }

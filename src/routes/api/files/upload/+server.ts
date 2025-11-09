@@ -32,22 +32,19 @@ export async function POST(event) {
 	const user = validateAuth(cookies);
 	const userId = user?.id || null;
 
-	// Check guest file uploads setting
-	const guestFileUploadsEnabledSetting = db.prepare(
-		'SELECT value FROM settings WHERE key = \'guest_file_uploads_enabled\''
-	).get();
-	const isGuestFileUploadAllowed = guestFileUploadsEnabledSetting ? guestFileUploadsEnabledSetting.value === 'true' : false;
+	const guestFileUploadsEnabledSetting = db
+		.prepare("SELECT value FROM settings WHERE key = 'guest_file_uploads_enabled'")
+		.get();
 
-	// Check for anonymous uploads if not allowed by ENV or setting
-	if (!userId && env.ALLOW_ANONYMOUS_UPLOADS === 'false' && !isGuestFileUploadAllowed) {
-		throw error(403, 'Guest file uploads are disabled.');
+	let isGuestFileUploadAllowed;
+	if (guestFileUploadsEnabledSetting) {
+		isGuestFileUploadAllowed = guestFileUploadsEnabledSetting.value === 'true';
+	} else {
+		isGuestFileUploadAllowed = env.ALLOW_ANONYMOUS_UPLOADS === 'true';
 	}
 
-
-
-	// Check for anonymous uploads if not allowed
-	if (!userId && !ALLOW_ANONYMOUS_UPLOADS) {
-		throw error(401, 'Unauthorized: Anonymous uploads are disabled.');
+	if (!userId && !isGuestFileUploadAllowed) {
+		throw error(403, 'Guest file uploads are disabled.');
 	}
 
 	// --- OWNERSHIP CHECK FOR COLLECTION ---

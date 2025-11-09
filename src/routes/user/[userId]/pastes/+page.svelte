@@ -25,10 +25,10 @@
 			{#each pastes as paste}
 				<li class="flex items-center justify-between rounded-lg border border-text p-4">
 					<a href={`/${paste.id}`} class="text-lg hover:underline">
-						{paste.id} ({paste.language})
+						{paste.title ? `${paste.title} (${paste.id})` : `${paste.id} (${paste.language})`}
 					</a>
 					<span class="text-sm text-neutral-400">
-						{formatDate(paste.created_at)}
+						{formatDate(paste.created_at * 1000)}
 					</span>
 				</li>
 			{/each}

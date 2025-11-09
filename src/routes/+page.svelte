@@ -6,6 +6,7 @@
 
 	let content = '';
 	let language = 'plaintext';
+	let title = '';
 	let id = '';
 	let loading = false;
 
@@ -93,12 +94,13 @@
 
 	async function createPaste() {
 		loading = true;
+		console.log('creating paste');
 		const headers = { 'Content-Type': 'application/json' };
 
 		const res = await fetch('/api/paste', {
 			method: 'POST',
 			headers,
-			body: JSON.stringify({ content, language })
+			body: JSON.stringify({ content, language, title })
 		});
 
 		if (res.ok) {
@@ -160,6 +162,12 @@
 	</h1>
 
 	<div class="space-y-4 rounded-lg border border-text p-4">
+		<input
+			type="text"
+			bind:value={title}
+			placeholder="optional title..."
+			class="w-full border-0 border-neutral-800 bg-transparent text-sm text-neutral-300 focus:border-accent focus:outline-none"
+		/>
 		<textarea
 			bind:value={content}
 			placeholder="enter your text..."
@@ -177,7 +185,7 @@
 				disabled={loading}
 				class="px-4 py-2 hover:cursor-pointer hover:underline"
 			>
-				{loading ? '...' : 'upload'}
+				{loading ? '...' : 'create'}
 			</button>
 		</div>
 		{#if id}
@@ -208,50 +216,57 @@
 		<div class="auth-section">
 			<hr class="my-4 border-t border-neutral-900" />
 
-			{#if isLoggedIn}
-				<p>
-					Welcome, {currentUsername}!
-					<button class="border-0 hover:cursor-pointer hover:underline" on:click={logout}
-						>{'> Logout'}</button
-					>
-					{#if data.userId && !data.noLogin}
-						<a
-							href={`/user/${data.userId}/pastes`}
-							class="border-0 hover:cursor-pointer hover:underline"
+			<div class="flex items-center justify-between">
+				{#if isLoggedIn}
+					<p>
+						Welcome, {currentUsername}!
+						<button class="border-0 hover:cursor-pointer hover:underline" on:click={logout}
+							>{'> Logout'}</button
 						>
-							{'/ my_pastes'}
-						</a>
-						{#if data.fileSharingEnabled}
+						{#if data.userId && !data.noLogin}
 							<a
-								href={`/user/${data.userId}/files`}
+								href={`/user/${data.userId}/pastes`}
 								class="border-0 hover:cursor-pointer hover:underline"
 							>
-								{' / my_files'}
+								{'/ my_pastes'}
 							</a>
+							{#if data.fileSharingEnabled}
+								<a
+									href={`/user/${data.userId}/files`}
+									class="border-0 hover:cursor-pointer hover:underline"
+								>
+									{' / my_files'}
+								</a>
+							{/if}
 						{/if}
-					{/if}
-				</p>
-			{:else}
-				<button
-					on:click={() => (showLogin = !showLogin)}
-					class="border-0 hover:cursor-pointer hover:underline"
-					>{showLogin ? '< Cancel' : '> Login'}</button
-				>
-				{#if showLogin}
-					<input type="text" bind:value={username} placeholder="Username" />
-					<button on:click={generateOtp}>Login with Google Authenticator</button>
-					{#if qrCodeDataUrl}
-						<div>
-							<p>Scan this QR code with your Google Authenticator app:</p>
-							<img src={qrCodeDataUrl} alt="QR Code" />
-						</div>
-					{/if}
-					{#if showOtpInput}
-						<input type="text" bind:value={otp} placeholder="OTP" maxlength="6" />
-						<button style="" on:click={verifyOtp}>Verify</button>
-					{/if}
+					</p>
+				{:else}
+					<div>
+						<button
+							on:click={() => (showLogin = !showLogin)}
+							class="border-0 hover:cursor-pointer hover:underline"
+							>{showLogin ? '< Cancel' : '> Login'}</button
+						>
+						{#if showLogin}
+							<input type="text" bind:value={username} placeholder="Username" />
+							<button on:click={generateOtp}>Login with Google Authenticator</button>
+							{#if qrCodeDataUrl}
+								<div>
+									<p>Scan this QR code with your Google Authenticator app:</p>
+									<img src={qrCodeDataUrl} alt="QR Code" />
+								</div>
+							{/if}
+							{#if showOtpInput}
+								<input type="text" bind:value={otp} placeholder="OTP" maxlength="6" />
+								<button style="" on:click={verifyOtp}>Verify</button>
+							{/if}
+						{/if}
+					</div>
 				{/if}
-			{/if}
+				<a href="/privacy" class="text-neutral-500 hover:text-white hover:underline"
+					>Privacy Policy</a
+				>
+			</div>
 		</div>
 	{/if}
 </main>

@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { log } from '$lib/log';
-import { purgeExpiredPastes } from '$lib/cron';
+import { runAllPurges } from '$lib/cron'; // Import runAllPurges
 
 export async function POST(event) {
   const clientAddress = event.locals.ip;
@@ -10,7 +10,7 @@ export async function POST(event) {
     return new Response('Unauthorized', { status: 401 });
   }
 
-  const changes = purgeExpiredPastes();
+  await runAllPurges(); // Call the unified purge function
 
-  return json({ message: `Deleted ${changes} expired pastes.` });
+  return json({ message: `All purge operations completed.` }); // Update response message
 }

@@ -26,7 +26,7 @@ export const load: PageServerLoad = async (event) => {
 
 	const notifications = db
 		.prepare(
-			`SELECT message, user_id FROM notifications WHERE (user_id IS NULL OR user_id = '' OR user_id = ?) AND (expires_at IS NULL OR expires_at > strftime('%s', 'now'))`
+			`SELECT id, message, user_id FROM notifications WHERE (user_id IS NULL OR user_id = '' OR user_id = ?) AND (expires_at IS NULL OR expires_at > strftime('%s', 'now'))`
 		)
 		.all(user?.id || null);
 
@@ -38,6 +38,10 @@ export const load: PageServerLoad = async (event) => {
 		isLoggedIn: !!user,
 		username: user?.username || '',
 		userId: user?.id || null,
-		notifications: notifications.map((n) => ({ message: n.message, isUserSpecific: !!n.user_id }))
+		notifications: notifications.map((n) => ({
+			id: n.id,
+			message: n.message,
+			isUserSpecific: !!n.user_id
+		}))
 	};
 };

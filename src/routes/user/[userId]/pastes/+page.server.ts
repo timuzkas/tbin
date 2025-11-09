@@ -18,7 +18,7 @@ export async function load(event) {
 
 	const pastes = db
 		.prepare(
-			'SELECT id, language, created_at FROM pastes WHERE user_id = ? ORDER BY created_at DESC'
+			'SELECT id, language, created_at, title FROM pastes WHERE user_id = ? ORDER BY created_at DESC'
 		)
 		.all(user.id);
 
