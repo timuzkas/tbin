@@ -22,7 +22,6 @@ export const handle = async ({ event, resolve }) => {
 	// ---- IP detection ----
 	const forwardedIp = event.request.headers.get('x-forwarded-for');
 	const realIp = event.request.headers.get('x-real-ip');
-
 	let clientIp = 'unknown';
 
 	if (forwardedIp) {
@@ -42,24 +41,26 @@ export const handle = async ({ event, resolve }) => {
 	// ---- CORS ----
 	const isCorsRoute = CORS_ROUTES.some((r) => event.url.pathname.startsWith(r));
 
-	if (isCorsRoute) {
-		if (event.request.method === 'OPTIONS') {
-			return new Response(null, {
-				headers: {
-					'Access-Control-Allow-Origin': '*',
-					'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
-					'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-				}
-			});
-		}
+	// Handle preflight requests
+	if (isCorsRoute && event.request.method === 'OPTIONS') {
+		return new Response(null, {
+			headers: {
+				'Access-Control-Allow-Origin': '*',
+				'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+				'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+			}
+		});
+	}
 
-		const response = await resolve(event);
+	// Resolve the request
+	const response = await resolve(event);
+
+	// Add CORS headers only for CORS routes
+	if (isCorsRoute) {
 		response.headers.set('Access-Control-Allow-Origin', '*');
 		response.headers.set('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
 		response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-		return response;
 	}
 
-	// ---- Default ----
-	return resolve(event);
+	return response;
 };
