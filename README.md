@@ -4,7 +4,7 @@ a simple bin with optional abuse and auth support.
 
 ---
 
-built using sveltekit and better-sqlite.
+built using sveltekit and bun:sqlite.
 auth: Username + Google Authenticator TOTP
 abuse blocking and purifying (isomorphic-dompurify).
 
@@ -93,10 +93,10 @@ You can preview the production build with `bun run preview`.
 ---
 ## > Running the cron job
 
-To delete expired pastes, run the following command:
+To delete expired pastes and other entries, you can trigger the cron job via the API endpoint:
 
 ```bash
-node cron/delete-expired-pastes.js
+curl -X POST http://localhost:5173/api/cron/purge-expired
 ```
 
-You can schedule this script to run periodically using your operating system's cron scheduler.
+You can schedule this request to run periodically using your operating system's cron scheduler.

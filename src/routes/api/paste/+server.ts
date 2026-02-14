@@ -27,7 +27,7 @@ export async function POST(event) {
 		throw error(403, 'Guest paste creation is disabled.');
 	}
 
-  const rateLimitResponse = checkRateLimit(clientAddress, user?.id, 'paste_creation');
+  const rateLimitResponse = checkRateLimit(clientAddress, user?.id ?? null, 'paste_creation');
   if (rateLimitResponse) {
     return rateLimitResponse;
   }

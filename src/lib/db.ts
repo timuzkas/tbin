@@ -1,7 +1,7 @@
-import Database from 'better-sqlite3';
+import { Database } from 'bun:sqlite';
 
 const dbPath = 'pastes.db';
-const db = new Database(dbPath);
+const db: any = new Database(dbPath);
 
 db.prepare(
 	`
@@ -18,7 +18,7 @@ db.prepare(
 ).run();
 
 // Add ip column to pastes if it doesn't exist
-const pastesColumns = db.prepare('PRAGMA table_info(pastes)').all();
+const pastesColumns = db.prepare('PRAGMA table_info(pastes)').all() as any[];
 if (!pastesColumns.some((c) => c.name === 'ip')) {
 	db.prepare('ALTER TABLE pastes ADD COLUMN ip TEXT').run();
 }
@@ -26,6 +26,16 @@ if (!pastesColumns.some((c) => c.name === 'ip')) {
 // Add title column to pastes if it doesn't exist
 if (!pastesColumns.some((c) => c.name === 'title')) {
 	db.prepare('ALTER TABLE pastes ADD COLUMN title TEXT').run();
+}
+
+// Add expires_at column to pastes if it doesn't exist
+if (!pastesColumns.some((c) => c.name === 'expires_at')) {
+	db.prepare('ALTER TABLE pastes ADD COLUMN expires_at INTEGER').run();
+}
+
+// Add user_id column to pastes if it doesn't exist
+if (!pastesColumns.some((c) => c.name === 'user_id')) {
+	db.prepare('ALTER TABLE pastes ADD COLUMN user_id TEXT').run();
 }
 
 db.prepare(
@@ -39,7 +49,7 @@ db.prepare(
 ).run();
 
 // Add expires_at to offenses if it doesn't exist
-const offensesColumns = db.prepare('PRAGMA table_info(offenses)').all();
+const offensesColumns = db.prepare('PRAGMA table_info(offenses)').all() as any[];
 if (!offensesColumns.some((c) => c.name === 'expires_at')) {
 	db.prepare('ALTER TABLE offenses ADD COLUMN expires_at INTEGER').run();
 }
@@ -64,7 +74,7 @@ db.prepare(
 ).run();
 
 // Check if reason column exists in bans table, and add it if not
-const bansColumns = db.prepare('PRAGMA table_info(bans)').all();
+const bansColumns = db.prepare('PRAGMA table_info(bans)').all() as any[];
 const hasReasonColumn = bansColumns.some((column) => column.name === 'reason');
 
 if (!hasReasonColumn) {
@@ -85,7 +95,7 @@ db.prepare(
 ).run();
 
 // Check if banned column exists in users table, and add it if not
-const usersColumns = db.prepare('PRAGMA table_info(users)').all();
+const usersColumns = db.prepare('PRAGMA table_info(users)').all() as any[];
 const hasBannedColumn = usersColumns.some((column) => column.name === 'banned');
 
 if (!hasBannedColumn) {
@@ -127,7 +137,7 @@ db.prepare(
 
 // Check if collection_id column exists, and add it if not
 
-const filesColumns = db.prepare('PRAGMA table_info(files)').all();
+const filesColumns = db.prepare('PRAGMA table_info(files)').all() as any[];
 
 const hasCollectionId = filesColumns.some((column) => column.name === 'collection_id');
 
@@ -211,7 +221,7 @@ db.prepare(
 `
 ).run();
 
-const notificationsColumns = db.prepare('PRAGMA table_info(notifications)').all();
+const notificationsColumns = db.prepare('PRAGMA table_info(notifications)').all() as any[];
 if (!notificationsColumns.some((c) => c.name === 'ip')) {
 	db.prepare('ALTER TABLE notifications ADD COLUMN ip TEXT').run();
 }
@@ -257,4 +267,4 @@ db.prepare(
 `
 ).run();
 
-export default db;
+export default db as any;
