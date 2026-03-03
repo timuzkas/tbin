@@ -82,7 +82,7 @@
 
 <main class="mx-auto max-w-2xl space-y-6 p-6">
 	<a
-		on:click={() => (location.href = '/')}
+		href="/"
 		class="mb-4 block text-3xl text-accent hover:cursor-pointer hover:underline">> Upload File</a
 	>
 	<div class="space-y-4 rounded-lg border border-text p-4">
